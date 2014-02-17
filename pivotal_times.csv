@@ -1,0 +1,6 @@
+id;created_at;estimate;name;lead_time;cycle_time;accepted;added_at;added_by;started_at;started_by;accepted_at;accepted_by
+57997198;2013-10-01T14:16:00Z;1;Tool Tip für Kachel bearbeiten noch einmal anzeigen;6;5;true;2013-10-01 14:16:00 UTC;Philipp Vaerst;2013-10-02 09:42:22 UTC;Fred Grosskopf;2013-10-07 12:20:18 UTC;Philipp Vaerst
+58321562;2013-10-07T08:31:31Z;1;Bei Gruppen: Ernennung zum Gruppenadmin aktiviert Mitgliedschaft, verwirft Einladung/Anfrage falls vorhanden;0;0;true;2013-10-07 08:31:32 UTC;Fred Grosskopf;2013-10-07 08:31:34 UTC;Fred Grosskopf;2013-10-07 14:50:01 UTC;Andreas Burbach
+58000794;2013-10-01T14:54:09Z;5;"Experten ""automatisch"" identifizieren und nach Themen filtern können (""Calculated"")";13;0;true;2013-10-01 14:54:09 UTC;Chris Wiener;2013-10-14 07:40:55 UTC;Chris Wiener;2013-10-14 11:17:56 UTC;Phillip Oertel
+58792318;2013-10-14T10:06:18Z;1;URL der Experten vereinfachen;0;0;true;2013-10-14 10:06:18 UTC;Phillip Oertel;2013-10-14 15:04:35 UTC;Phillip Oertel;2013-10-14 15:04:40 UTC;Phillip Oertel
+58792068;2013-10-14T10:00:59Z;1;torial Blog nicht in Experten zeigen;0;0;true;2013-10-14 10:00:59 UTC;Phillip Oertel;2013-10-14 15:04:53 UTC;Phillip Oertel;2013-10-14 16:22:08 UTC;Phillip Oertel
