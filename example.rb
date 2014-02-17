@@ -4,7 +4,7 @@ require 'time'
 require 'open-uri'
 
 TOKEN      = ENV['TOKEN']
-PROJECT_ID = 568445
+PROJECT_ID = ENV['PROJECT_ID']
 SEC_TO_DAYS_MULTIPLIER = 24 * 60 * 60
 
 module Helper
