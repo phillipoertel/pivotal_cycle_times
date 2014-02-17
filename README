@@ -1,0 +1,4 @@
+Calculate the lead and cycle times of Pivotal Tracker features.
+
+Run like this:
+> TOKEN=bla234245lallb ruby example.rb
