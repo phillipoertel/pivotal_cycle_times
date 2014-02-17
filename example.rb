@@ -2,6 +2,7 @@ require 'json'
 require 'ostruct'
 require 'time'
 require 'open-uri'
+require 'csv'
 
 TOKEN      = ENV['TOKEN']
 PROJECT_ID = ENV['PROJECT_ID']
@@ -46,13 +47,17 @@ class StoryActivityData
     # created
     # TODO find the moment when story was selected to be developed. "moved and scheduled?"
     added_data = data.find { |change| change["highlight"] == "added" }
-    out.added_at = Time.parse(added_data["occurred_at"])
-    out.added_by = added_data["performed_by"]["name"]
+    if added_data 
+      out.added_at = Time.parse(added_data["occurred_at"])
+      out.added_by = added_data["performed_by"]["name"]
+    end
 
     # started
     start_data = data.find { |change| change["highlight"] == "started" }
-    out.started_at = Time.parse(start_data["occurred_at"])
-    out.started_by = start_data["performed_by"]["name"]
+    if start_data
+      out.started_at = Time.parse(start_data["occurred_at"])
+      out.started_by = start_data["performed_by"]["name"]
+    end
 
     # accepted
     accept_data = data.find { |change| change["highlight"] == "accepted" }
@@ -61,9 +66,12 @@ class StoryActivityData
       out.accepted_by = accept_data["performed_by"]["name"]
 
       out.accepted   = true
-      out.cycle_time = ((out.accepted_at - out.started_at) / SEC_TO_DAYS_MULTIPLIER).round
-      out.lead_time  = ((out.accepted_at - out.added_at) / SEC_TO_DAYS_MULTIPLIER).round 
-    else
+      if out.started_at
+        out.cycle_time = ((out.accepted_at - out.started_at) / SEC_TO_DAYS_MULTIPLIER).round
+      end
+      if out.added_at
+        out.lead_time  = ((out.accepted_at - out.added_at) / SEC_TO_DAYS_MULTIPLIER).round 
+      end
     end
 
     out
@@ -88,7 +96,7 @@ class ProjectStories
     out = []
     features = data.select { |story| story['story_type'] == "feature"}
     features.each do |feature|
-      out << OpenStruct.new(id: feature["id"], created_at: feature["created_at"], estimate: feature["estimate"])
+      out << OpenStruct.new(id: feature["id"], created_at: feature["created_at"], estimate: feature["estimate"], name: feature["name"])
     end
     out
   end
@@ -102,4 +110,8 @@ stories.each do |story|
   end
 end
 
-puts CSV.dump(stories.map { |story| story.marshal_dump })
+CSV.open("pivotal_times.csv", "wb", col_sep: ";", headers: stories.first.marshal_dump.keys, write_headers: true) do |csv|
+  stories.each do |story|
+    csv << story.marshal_dump.values
+  end
+end
