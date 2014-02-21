@@ -4,23 +4,32 @@ require 'time'
 require 'open-uri'
 require 'csv'
 
-TOKEN      = ENV['TOKEN']
-PROJECT_ID = ENV['PROJECT_ID']
+unless ENV['TOKEN'] && ENV['PROJECT_ID'] 
+  puts "TOKEN and PROJECT_ID required!" 
+  exit
+else
+  TOKEN      = ENV['TOKEN']
+  PROJECT_ID = ENV['PROJECT_ID']
+end
+
 SEC_TO_DAYS_MULTIPLIER = 24 * 60 * 60
 
-module Helper
+module HttpHelper
 
   def fetch_http(url, headers = {})
     headers.merge!("X-TrackerToken" => TOKEN)
     response = open(url, headers).read
     JSON.parse(response)
+  rescue => e
+    puts "Failed to fetch #{url} with headers #{headers.inspect}:"
+    puts e.message
   end
 
 end
 
 class StoryData
 
-  extend Helper
+  extend HttpHelper
 
   def self.request(story_id)
     url = "https://www.pivotaltracker.com/services/v5/projects/#{PROJECT_ID}/stories/#{story_id}"
@@ -28,12 +37,13 @@ class StoryData
   end
 
   def self.get(story_id)
+    request(story_id)
   end
 
 end
 
 class StoryActivityData
-  extend Helper
+  extend HttpHelper
 
   def self.request(story_id)
     url = "https://www.pivotaltracker.com/services/v5/projects/#{PROJECT_ID}/stories/#{story_id}/activity"
@@ -42,6 +52,7 @@ class StoryActivityData
 
   def self.get(story_id)
     data = request(story_id)
+    p data
     out  = OpenStruct.new(lead_time: nil, cycle_time: nil, accepted: false)
 
     # created
@@ -53,14 +64,14 @@ class StoryActivityData
     end
 
     # started
-    start_data = data.find { |change| change["highlight"] == "started" }
+    start_data = data.select { |change| change["highlight"] == "started" }.last
     if start_data
       out.started_at = Time.parse(start_data["occurred_at"])
       out.started_by = start_data["performed_by"]["name"]
     end
 
     # accepted
-    accept_data = data.find { |change| change["highlight"] == "accepted" }
+    accept_data = data.select { |change| change["highlight"] == "accepted" }.first
     if accept_data
       out.accepted_at = Time.parse(accept_data["occurred_at"])
       out.accepted_by = accept_data["performed_by"]["name"]
@@ -80,23 +91,25 @@ end
 
 class ProjectStories
   
-  extend Helper
+  extend HttpHelper
   
   def self.request(project_id, params)
     url = "https://www.pivotaltracker.com/services/v5/projects/#{project_id}/stories"
-    query_string = params.map { |k,v| "#{k}=#{v}"}.join("&") 
+    query_string = params.map { |k, v| "#{k}=#{URI.escape(v.to_s)}"}.join("&") 
     url << "?"
     url << query_string
     fetch_http(url)
   end
 
-  def self.get(project_id)
-    params = { with_state: "accepted", created_after: Date.new(2013, 10, 1).iso8601 + "T00:00:00", limit: 1_000 }
-    data = request(project_id, params)
+  def self.get(project_id)    
+    # type: feature, Bug, Chore or Release.
+    # state: unscheduled, unstarted, started, finished, delivered, accepted, or rejected
+    params = { filter: "created_after:08/01/2013", limit: 20 }
+    stories = request(project_id, params)
     out = []
-    features = data.select { |story| story['story_type'] == "feature"}
-    features.each do |feature|
-      out << OpenStruct.new(id: feature["id"], created_at: feature["created_at"], estimate: feature["estimate"], name: feature["name"])
+    #features = data.select { |story| story['story_type'] == "bug"}
+    stories.each do |story|
+      out << OpenStruct.new(id: story["id"], created_at: story["created_at"], estimate: story["estimate"], name: story["name"])
     end
     out
   end
@@ -104,14 +117,24 @@ end
 
 stories = ProjectStories.get(PROJECT_ID)
 stories.each do |story|
+  p story.id
   activity = StoryActivityData.get(story.id)
+  p activity
   activity.marshal_dump.each do |key, value|
     story.send("#{key}=", value)
   end
 end
 
-CSV.open("pivotal_times.csv", "wb", col_sep: ";", headers: stories.first.marshal_dump.keys, write_headers: true) do |csv|
+csv_fields = %w(id name estimate accepted added_at started_at accepted_at lead_time cycle_time)
+CSV.open("pivotal_times_bugs_2.csv", 'wb', col_sep: ";", headers: stories.first.marshal_dump.keys, write_headers: true) do |csv|
   stories.each do |story|
-    csv << story.marshal_dump.values
+    row = csv_fields.map { |field| story.send(field) }
+    csv << row
   end
 end
+
+
+
+# add lead and cycle time to csv
+# get all bug data into CSV reliably (older data, stories which have no accepted_at, etc.)
+# measure lead time by time scheduled
